@@ -2,14 +2,23 @@
 # -*- coding: utf-8 -*-
 
 # DaVinci Resolve scripting proof of concept. Resolve page external switcher.
+# Local or TCP/IP control mode.
 # Refer to Resolve V15 public beta 2 scripting API documentation for host setup.
 # Copyright 2018 Igor Riđanović, www.hdhead.com
 
 from PyQt4 import QtCore, QtGui
-import DaVinciResolveScript
-
 import sys
-from threading import Thread
+import socket
+
+# If API module not found assume we're working as a remote control
+try:
+	import DaVinciResolveScript
+	#Instantiate Resolve object
+	resolve = DaVinciResolveScript.scriptapp('Resolve')
+	checkboxState = False
+except ImportError:
+	print 'Resolve API not found.'
+	checkboxState = True
 
 try:
 	_fromUtf8 = QtCore.QString.fromUtf8
@@ -29,8 +38,11 @@ class Ui_Form(object):
 	def setupUi(self, Form):
 		Form.setObjectName(_fromUtf8('Resolve Page Switcher'))
 		Form.resize(561, 88)
-		Form.setStyleSheet(_fromUtf8('background-color: #282828;'))
-
+		Form.setStyleSheet(_fromUtf8('background-color: #282828;\
+								border-color: #555555;\
+								color: #929292;\
+								font-size: 13px;'\
+								))
 		self.horizontalLayout = QtGui.QHBoxLayout(Form)
 		self.horizontalLayout.setObjectName(_fromUtf8('horizontalLayout'))
 		self.mediaButton = QtGui.QPushButton(Form)
@@ -51,7 +63,11 @@ class Ui_Form(object):
 		self.deliverButton = QtGui.QPushButton(Form)
 		self.deliverButton.setObjectName(_fromUtf8('deliverButton'))
 		self.horizontalLayout.addWidget(self.deliverButton)
-				
+		self.tcpipcheckBox = QtGui.QCheckBox(Form)
+		self.tcpipcheckBox.setObjectName(_fromUtf8('tcpipcheckBox'))
+		self.tcpipcheckBox.setChecked(checkboxState)
+		self.horizontalLayout.addWidget(self.tcpipcheckBox)
+
 		self.mediaButton.clicked.connect(lambda: self.pageswitch('media'))
 		self.editButton.clicked.connect(lambda: self.pageswitch('edit'))
 		self.fusionButton.clicked.connect(lambda: self.pageswitch('fusion'))
@@ -59,57 +75,54 @@ class Ui_Form(object):
 		self.fairlightButton.clicked.connect(lambda: self.pageswitch('fairlight'))
 		self.deliverButton.clicked.connect(lambda: self.pageswitch('deliver'))
 				
-		self.mediaButton.setStyleSheet(_fromUtf8('background-color: #181818;\
-													color: #929292;\
-													border-color:\
-													#555555; font-size: 13px;'\
-													))
-		self.editButton.setStyleSheet(_fromUtf8('background-color: #181818;\
-													color: #929292;\
-													border-color:\
-													#555555; font-size: 13px;'\
-													))
-		self.fusionButton.setStyleSheet(_fromUtf8('background-color: #181818;\
-													color: #929292;\
-													border-color:\
-													#555555; font-size: 13px;'\
-													))
-		self.colorButton.setStyleSheet(_fromUtf8('background-color: #181818;\
-													color: #929292;\
-													border-color:\
-													#555555; font-size: 13px;'\
-													))
-		self.fairlightButton.setStyleSheet(_fromUtf8('background-color: #181818;\
-													color: #929292;\
-													border-color:\
-													#555555; font-size: 13px;'\
-													))
-		self.deliverButton.setStyleSheet(_fromUtf8('background-color: #181818;\
-													color: #929292;\
-													border-color:\
-													#555555; font-size: 13px;'\
-													))
+		self.mediaButton.setStyleSheet(_fromUtf8('background-color: #181818;'))
+		self.editButton.setStyleSheet(_fromUtf8('background-color: #181818;'))
+		self.fusionButton.setStyleSheet(_fromUtf8('background-color: #181818;'))
+		self.colorButton.setStyleSheet(_fromUtf8('background-color: #181818;'))
+		self.fairlightButton.setStyleSheet(_fromUtf8('background-color: #181818;'))
+		self.deliverButton.setStyleSheet(_fromUtf8('background-color: #181818;'))
+
 		self.retranslateUi(Form)
 		QtCore.QMetaObject.connectSlotsByName(Form)
 
 	def retranslateUi(self, Form):
-		Form.setWindowTitle(_translate('Resolve Page Switcher', 'Resolve Page Switcher', None))
+		Form.setWindowTitle(_translate('Resolve Page Switcher',\
+								'Resolve Page Switcher', None))
 		self.mediaButton.setText(_translate('Form', 'Media', None))
 		self.editButton.setText(_translate('Form', 'Edit', None))
 		self.fusionButton.setText(_translate('Form', 'Fusion', None))
 		self.colorButton.setText(_translate('Form', 'Color', None))
 		self.fairlightButton.setText(_translate('Form', 'Fairlight', None))
 		self.deliverButton.setText(_translate('Form', 'Deliver', None))
+		self.tcpipcheckBox.setText(_translate("Form", "TCP/IP remote", None))
 
-	# Start Resolve page flipping as a new thread
+	def send(self, message):
+		s = socket.socket()
+		try: 
+			s.connect((server, port))
+		except socket.error:
+			print 'Server unavailable. Exiting.'
+		s.send(message)
+		return s.recv(32)
+
 	def pageswitch(self, page):
-		print page
-		resolve.OpenPage(page)
+		# Send page name to server to switch remote Resolve's page
+		if self.tcpipcheckBox.isChecked():
+			response = self.send(page)
+			print 'Server echo:', response
+		# Switch local Resolve's page if API is available
+		else:
+			try:
+				resolve.OpenPage(page)
+				print 'Switched to', page
+			except NameError:
+				print 'Resolve API not found. Run in remote mode instead?'
 
 if __name__ == '__main__':
 
-	# Instantiate Resolve object
-	resolve = DaVinciResolveScript.scriptapp('Resolve')
+	# Assign server parameters
+	server = '192.168.1.1'
+	port = 7779
 
 	app = QtGui.QApplication(sys.argv)
 	Form = QtGui.QWidget()
