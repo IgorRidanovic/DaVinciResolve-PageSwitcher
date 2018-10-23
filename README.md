@@ -9,7 +9,7 @@ Remote Operation Setup
 
 Enter Resolve host IP address in server = 'IP address' in each of the .py files. You may enter another port number than the one provided. 
 
-Run the PageSwicthServer.py on the Resolve machine. Run the PageSwitchServer.py on the remote control host. There is additional reporting available if you execute the scripts inside a command line.
+Run the PageSwitchServer.py on the Resolve machine. Run the PageSwitchServer.py on the remote control host. There is additional reporting available if you execute the scripts inside a command line.
 
 Check "TCP/IP remote" to control a remote Resolve. Uncheck if running the ResolvePageSwitcher.py on the same local machine as the Resolve. The server script is not necessary for local operation.
 
